@@ -2,7 +2,7 @@ import kotlin.math.max
 
 /* function longestCommonSubsequence finds LCS of arrays a and b
  and returns array that contains pairs of indexes that elements of LCS
- have in arrays a and b
+ have in arrays a and b (numbering of elements starts from one)
  */
 fun <T> longestCommonSubsequence (a: Array<T>, b: Array<T>): Array<Pair<Int, Int>> {
     val n = a.size
@@ -26,7 +26,7 @@ fun <T> longestCommonSubsequence (a: Array<T>, b: Array<T>): Array<Pair<Int, Int
     var curPair = lcsSize - 1
     while (curPair >= 0) {
         if (a[i - 1] == b[j - 1]) {
-            lcs[curPair] = Pair(i - 1, j - 1)
+            lcs[curPair] = Pair(i, j)
             --i; --j; --curPair
         } else if (lcsDP[i][j] == lcsDP[i - 1][j])
             --i
@@ -35,6 +35,34 @@ fun <T> longestCommonSubsequence (a: Array<T>, b: Array<T>): Array<Pair<Int, Int
     }
 
     return lcs
+}
+
+data class DiffBlock (val originalL : Int, //start of range of changed lines in original file
+                      val originalS : Int, //start of range of changed lines in original file
+                      val newL : Int,      //start of range of changed lines in new file
+                      val newS : Int       //number of added/changed lines in new file
+)
+
+/* function findDiff takes array from function longestCommonSubsequence and number of lines
+in original and new file and returns list of changes/additions/deletions, where one
+element describes one change/addition/deletion in file
+ */
+fun findDiff (indexes: Array<Pair<Int, Int>>, originalSize: Int, newSize: Int) : List<DiffBlock> {
+    var originalPrev = 0
+    var newPrev = 0
+    val result : MutableList<DiffBlock> = mutableListOf()
+    for (element in indexes) {
+        if (!(originalPrev + 1 == element.first && newPrev + 1 == element.second))
+            result.add(DiffBlock(originalPrev, element.first - originalPrev - 1,
+                newPrev, element.second - newPrev - 1))
+        originalPrev = element.first
+        newPrev = element.second
+    }
+    if (!(originalPrev == originalSize && newPrev == newSize))
+        result.add(DiffBlock(originalPrev, originalSize - originalPrev,
+            newPrev, newSize - newPrev))
+
+    return result
 }
 
 fun main(args: Array<String>) {
