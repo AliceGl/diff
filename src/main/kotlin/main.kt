@@ -1,3 +1,4 @@
+import java.io.File
 import kotlin.math.max
 
 /* function longestCommonSubsequence finds LCS of arrays a and b
@@ -65,6 +66,56 @@ fun findDiff (indexes: Array<Pair<Int, Int>>, originalSize: Int, newSize: Int) :
     return result
 }
 
-fun main(args: Array<String>) {
+fun read() : List<String> {
+    val list : MutableList<String> = mutableListOf()
+    while(true) {
+        val line = readLine() ?: break
+        list.addAll(line.split(' '))
+    }
+    return list
+}
+
+fun input(args: Array<String>) : Pair<String, List<String>> {
+    val options = StringBuilder()
+    val files : MutableList<String> = mutableListOf()
+    for (arg in args.plus(read())) {
+        if (arg == "")
+            continue
+        if (arg[0] == '-' && files.isEmpty())
+            options.append(arg.substring(1))
+        else
+            files.add(arg)
+    }
+    return Pair(options.toString(), files)
+}
+
+fun checkValid(options: String, files : List<String>) {
+    val validOptions = "" //there will be options
+
+    for (option in options)
+        check(option in validOptions) {"There is no option \"$option\""}
+
+    check(files.size <= 2) {"Too many arguments"}
+    for (file in files)
+        check(File(file).exists()) {"There is no file \"$file\""}
+    check(files.size >= 2) {"Not enough arguments"}
+}
+
+class TextFile(val path: String) {
+    val text : Array<String> = File(path).readLines().toTypedArray()
+    val size = text.size
+}
+
+fun output(diff : List<DiffBlock>) {
     TODO()
+}
+
+fun main(args: Array<String>) {
+    val (options, files) = input(args)
+    checkValid(options, files)
+    val originalFile = TextFile(files[0])
+    val newFile = TextFile(files[1])
+    val diff = findDiff(longestCommonSubsequence(originalFile.text, newFile.text),
+        originalFile.size, newFile.size)
+    output(diff)
 }
