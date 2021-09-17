@@ -1,14 +1,14 @@
 import java.io.File
 import kotlin.math.max
 
-/* function longestCommonSubsequence finds LCS of arrays a and b
- and returns array that contains pairs of indexes that elements of LCS
- have in arrays a and b (numbering of elements starts from one)
+/* function longestCommonSubsequence finds LCS of lists a and b
+ and returns list that contains pairs of indexes that elements of LCS
+ have in lists a and b (numbering of elements starts from one)
  */
-fun <T> longestCommonSubsequence (a: Array<T>, b: Array<T>): Array<Pair<Int, Int>> {
+fun <T> longestCommonSubsequence (a: List<T>, b: List<T>): List<Pair<Int, Int>> {
     val n = a.size
     val m = b.size
-    val lcsDP: Array<Array<Int>> = Array(n + 1) { Array(m + 1) {0} }
+    val lcsDP = List(n + 1) { MutableList(m + 1) {0} }
     //lcs[i][j] - LCS for a[0..i - 1] and b[0..j - 1]
     for (i in 1..n) {
         for (j in 1..m) {
@@ -19,7 +19,7 @@ fun <T> longestCommonSubsequence (a: Array<T>, b: Array<T>): Array<Pair<Int, Int
         }
     }
     val lcsSize = lcsDP[n][m]
-    val lcs : Array<Pair<Int, Int>> = Array(lcsSize) { Pair(0, 0) }
+    val lcs = MutableList(lcsSize) { Pair(0, 0) }
 
     //finding LCS's indexes in a and b
     var i = n
@@ -44,20 +44,20 @@ data class DiffBlock (val originalL : Int, //start of range of changed lines in 
                       val newS : Int       //number of added/changed lines in new file
 )
 
-/* function findDiff takes array from function longestCommonSubsequence and number of lines
+/* function findDiff takes list from function longestCommonSubsequence and number of lines
 in original and new file and returns list of changes/additions/deletions, where one
 element describes one change/addition/deletion in file
  */
-fun findDiff (indexes: Array<Pair<Int, Int>>, originalSize: Int, newSize: Int) : List<DiffBlock> {
+fun findDiff (indexes: List<Pair<Int, Int>>, originalSize: Int, newSize: Int) : List<DiffBlock> {
     var originalPrev = 0
     var newPrev = 0
     val result : MutableList<DiffBlock> = mutableListOf()
-    for (element in indexes) {
-        if (!(originalPrev + 1 == element.first && newPrev + 1 == element.second))
-            result.add(DiffBlock(originalPrev, element.first - originalPrev - 1,
-                newPrev, element.second - newPrev - 1))
-        originalPrev = element.first
-        newPrev = element.second
+    indexes.forEach {
+        if (!(originalPrev + 1 == it.first && newPrev + 1 == it.second))
+            result.add(DiffBlock(originalPrev, it.first - originalPrev - 1,
+                newPrev, it.second - newPrev - 1))
+        originalPrev = it.first
+        newPrev = it.second
     }
     if (!(originalPrev == originalSize && newPrev == newSize))
         result.add(DiffBlock(originalPrev, originalSize - originalPrev,
@@ -75,7 +75,7 @@ fun read() : List<String> {
     return list
 }
 
-fun input(args: Array<String>) : Pair<String, List<String>> {
+fun input(args: List<String>) : Pair<String, List<String>> {
     val options = StringBuilder()
     val files : MutableList<String> = mutableListOf()
     for (arg in args.plus(read())) {
@@ -92,17 +92,19 @@ fun input(args: Array<String>) : Pair<String, List<String>> {
 fun checkValid(options: String, files : List<String>) {
     val validOptions = "" //there will be options
 
-    for (option in options)
-        check(option in validOptions) {"There is no option \"$option\""}
+    options.forEach {
+        check(it in validOptions) { "There is no option \"$it\"" }
+    }
 
     check(files.size <= 2) {"Too many arguments"}
-    for (file in files)
-        check(File(file).exists()) {"There is no file \"$file\""}
+    files.forEach {
+        check(File(it).exists()) { "There is no file \"$it\"" }
+    }
     check(files.size >= 2) {"Not enough arguments"}
 }
 
 class TextFile(val path: String) {
-    val text : Array<String> = File(path).readLines().toTypedArray()
+    val text : List<String> = File(path).readLines()
     val size = text.size
 }
 
@@ -111,7 +113,7 @@ fun output(diff : List<DiffBlock>) {
 }
 
 fun main(args: Array<String>) {
-    val (options, files) = input(args)
+    val (options, files) = input(args.toList())
     checkValid(options, files)
     val originalFile = TextFile(files[0])
     val newFile = TextFile(files[1])
