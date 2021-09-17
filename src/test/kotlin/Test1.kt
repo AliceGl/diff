@@ -59,4 +59,15 @@ internal class Test1 {
                 Pair(6, 6), Pair(7, 7)), 7, 7)
         )
     }
+
+    @Test
+    fun formatTests() {
+        assertEquals(Format.UnifiedContext, getFormat("aaauaaaaa"))
+        assertEquals(Format.Default, getFormat("aaabaaaaa"))
+        assertEquals(Format.UnifiedContext, getFormat("aaauaaauua"))
+        assertEquals(Format.EditScript, getFormat("aaaeaaaaa"))
+        assertEquals(Format.CopiedContext, getFormat("aaacaaaaa"))
+        assertEquals(Format.SideBySide, getFormat("aaayaaaaa"))
+        assertFails { getFormat("uc") }
+    }
 }

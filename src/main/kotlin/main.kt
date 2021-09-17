@@ -90,7 +90,7 @@ fun input(args: List<String>) : Pair<String, List<String>> {
 }
 
 fun checkValid(options: String, files : List<String>) {
-    val validOptions = "" //there will be options
+    val validOptions = "ecuy"
 
     options.forEach {
         check(it in validOptions) { "There is no option \"$it\"" }
@@ -108,16 +108,99 @@ class TextFile(val path: String) {
     val size = text.size
 }
 
-fun output(diff : List<DiffBlock>) {
+enum class Format { Default, EditScript, CopiedContext, UnifiedContext, SideBySide }
+
+fun getFormatFromChar(c : Char) = when (c) {
+    'e' -> Format.EditScript
+    'c' -> Format.CopiedContext
+    'u' -> Format.UnifiedContext
+    'y' -> Format.SideBySide
+    else -> Format.Default
+}
+
+fun getFormat(options: String) : Format {
+    var result = Format.Default
+    for (f in "ecuy") {
+        if (f in options) {
+            check(result == Format.Default || result == getFormatFromChar(f)) { "Option conflict" }
+            result = getFormatFromChar((f))
+        }
+    }
+    return result
+}
+
+fun printLine(outputPath : String?, line : String) =
+    if (outputPath is String) File(outputPath).writeText(line)
+    else println(line)
+
+fun defaultOutput(diff : List<DiffBlock>, originalFile : TextFile,
+                  newFile : TextFile, outputPath : String?) {
+    diff.forEach {
+        val head = StringBuilder()
+        head.append(when (it.originalS) {
+            0 -> it.originalL
+            1 -> it.originalL + 1
+            else -> (it.originalL + 1).toString() + "," + (it.originalS + it.originalL).toString()
+        })
+        head.append(when {
+            it.originalS == 0 -> 'a'
+            it.newS == 0 -> 'd'
+            else -> 'c'
+        })
+        head.append(when (it.newS) {
+            0 -> it.newL
+            1 -> it.newL + 1
+            else -> (it.newL + 1).toString() + "," + (it.newS + it.newL).toString()
+        })
+        printLine(outputPath, head.toString())
+
+        for (i in 0 until it.originalS)
+            printLine(outputPath, "< " + originalFile.text[it.originalL + i])
+        if (it.originalS != 0)
+            printLine(outputPath,"---")
+        for (i in 0 until it.newS)
+            printLine(outputPath, "> " + newFile.text[it.newL + i])
+    }
+}
+
+fun editScriptOutput(diff : List<DiffBlock>, originalFile : TextFile,
+                  newFile : TextFile, outputPath : String?) {
     TODO()
+}
+
+fun copiedContextOutput(diff : List<DiffBlock>, originalFile : TextFile,
+                  newFile : TextFile, outputPath : String?) {
+    TODO()
+}
+
+fun unifiedContextOutput(diff : List<DiffBlock>, originalFile : TextFile,
+                  newFile : TextFile, outputPath : String?) {
+    TODO()
+}
+
+fun sideBySideOutput(diff : List<DiffBlock>, originalFile : TextFile,
+                  newFile : TextFile, outputPath : String?) {
+    TODO()
+}
+
+fun output(diff : List<DiffBlock>, format : Format, originalFile : TextFile,
+           newFile : TextFile, outputPath : String?) {
+    when (format) {
+        Format.Default -> defaultOutput(diff, originalFile, newFile, outputPath)
+        Format.EditScript -> editScriptOutput(diff, originalFile, newFile, outputPath)
+        Format.CopiedContext -> copiedContextOutput(diff, originalFile, newFile, outputPath)
+        Format.UnifiedContext -> unifiedContextOutput(diff, originalFile, newFile, outputPath)
+        Format.SideBySide -> sideBySideOutput(diff, originalFile, newFile, outputPath)
+    }
 }
 
 fun main(args: Array<String>) {
     val (options, files) = input(args.toList())
     checkValid(options, files)
+    val format = getFormat(options)
     val originalFile = TextFile(files[0])
     val newFile = TextFile(files[1])
     val diff = findDiff(longestCommonSubsequence(originalFile.text, newFile.text),
         originalFile.size, newFile.size)
-    output(diff)
+    output(diff, format, originalFile, newFile, if (files.size > 2) files[2] else null)
 }
