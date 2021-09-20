@@ -149,7 +149,7 @@ fun checkValid(options: String, files : List<String>) {
         check(it in validOptions) { "There is no option \"$it\"" }
     }
 
-    check(files.size <= 2) {"Too many arguments"}
+    check(files.size <= 3) {"Too many arguments"}
     files.forEach {
         check(File(it).exists()) { "There is no file \"$it\"" }
     }
@@ -183,9 +183,7 @@ fun getFormat(options: String) : Format {
     return result
 }
 
-fun printLine(outputPath : String?, line : String) =
-    if (outputPath is String) File(outputPath).writeText(line)
-    else println(line)
+fun printLine(outputPath : String?, line : String) = println(line)
 
 fun defaultOutput(diff : List<DiffBlock>, originalFile : TextFile,
                   newFile : TextFile, outputPath : String?) {
