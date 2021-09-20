@@ -1,5 +1,6 @@
 import java.io.File
 import kotlin.math.max
+import kotlin.math.min
 
 /* function longestCommonSubsequence finds LCS of lists a and b
  and returns list that contains pairs of indexes that elements of LCS
@@ -165,7 +166,25 @@ fun defaultOutput(diff : List<DiffBlock>, originalFile : TextFile,
 
 fun editScriptOutput(diff : List<DiffBlock>, originalFile : TextFile,
                   newFile : TextFile, outputPath : String?) {
-    TODO()
+    diff.reversed().forEach {
+        val head = StringBuilder()
+        head.append(when (it.originalS) {
+            0 -> it.originalL
+            1 -> it.originalL + 1
+            else -> (it.originalL + 1).toString() + "," + (it.originalS + it.originalL).toString()
+        })
+        head.append(when {
+            it.originalS == 0 -> 'a'
+            it.newS == 0 -> 'd'
+            else -> 'c'
+        })
+        printLine(outputPath, head.toString())
+
+        for (i in 0 until it.newS)
+            printLine(outputPath, newFile.text[it.newL + i])
+        if (it.newS != 0)
+            printLine(outputPath, ".")
+    }
 }
 
 fun copiedContextOutput(diff : List<DiffBlock>, originalFile : TextFile,
@@ -180,7 +199,31 @@ fun unifiedContextOutput(diff : List<DiffBlock>, originalFile : TextFile,
 
 fun sideBySideOutput(diff : List<DiffBlock>, originalFile : TextFile,
                   newFile : TextFile, outputPath : String?) {
-    TODO()
+    val width = originalFile.text.maxOf {it.length} + 10
+    var curBlock = 0
+    var originalLine = 0
+    var newLine = 0
+    while (originalLine != originalFile.text.size || newLine != newFile.text.size) {
+        if (curBlock < diff.size && originalLine == diff[curBlock].originalL && newLine == diff[curBlock].newL) {
+            val common = min(diff[curBlock].originalS, diff[curBlock].newS)
+            for (i in 0 until common)
+                printLine(outputPath, originalFile.text[originalLine + i].padEnd(width) + "| "
+                        + newFile.text[newLine + i])
+            for (i in common until diff[curBlock].originalS)
+                printLine(outputPath, originalFile.text[originalLine + i].padEnd(width) + "<")
+            for (i in common until diff[curBlock].newS)
+                printLine(outputPath, "".padEnd(width) + "> " + newFile.text[newLine + i])
+
+            originalLine += diff[curBlock].originalS
+            newLine += diff[curBlock].newS
+            ++curBlock
+        } else {
+            printLine(outputPath, originalFile.text[originalLine].padEnd(width) + "  "
+                    + newFile.text[newLine])
+            ++originalLine
+            ++newLine
+        }
+    }
 }
 
 fun output(diff : List<DiffBlock>, format : Format, originalFile : TextFile,
