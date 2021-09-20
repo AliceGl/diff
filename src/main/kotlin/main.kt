@@ -143,7 +143,7 @@ fun input(args: List<String>) : Pair<String, List<String>> {
 }
 
 fun checkValid(options: String, files : List<String>) {
-    val validOptions = "ecuy"
+    val validOptions = "ecuysi"
 
     options.forEach {
         check(it in validOptions) { "There is no option \"$it\"" }
@@ -156,9 +156,10 @@ fun checkValid(options: String, files : List<String>) {
     check(files.size >= 2) {"Not enough arguments"}
 }
 
-class TextFile(val path: String) {
+class TextFile(val path: String, ignoreCase: Boolean) {
     val text : List<String> = File(path).readLines()
     val size = text.size
+    val textHash = text.map { (if (ignoreCase) it.lowercase() else it).hashCode() }
 }
 
 enum class Format { Default, EditScript, CopiedContext, UnifiedContext, SideBySide }
@@ -240,8 +241,8 @@ fun editScriptOutput(diff : List<DiffBlock>, newFile : TextFile, outputPath : St
 
 fun copiedContextOutput(diff : List<DiffBlock>, originalFile : TextFile,
                   newFile : TextFile, outputPath : String?) {
-    val context = diffToContext(diff, originalFile.text.size, newFile.text.size)
-    val (originalMarks, newMarks) = markLines(diff, originalFile.text.size, newFile.text.size)
+    val context = diffToContext(diff, originalFile.size, newFile.size)
+    val (originalMarks, newMarks) = markLines(diff, originalFile.size, newFile.size)
 
     printLine(outputPath, "*** " + originalFile.path)
     printLine(outputPath, "--- " + newFile.path)
@@ -263,8 +264,8 @@ fun copiedContextOutput(diff : List<DiffBlock>, originalFile : TextFile,
 
 fun unifiedContextOutput(diff : List<DiffBlock>, originalFile : TextFile,
                   newFile : TextFile, outputPath : String?) {
-    val context = diffToContext(diff, originalFile.text.size, newFile.text.size)
-    val (originalMarks, newMarks) = markLines(diff, originalFile.text.size, newFile.text.size)
+    val context = diffToContext(diff, originalFile.size, newFile.size)
+    val (originalMarks, newMarks) = markLines(diff, originalFile.size, newFile.size)
 
     printLine(outputPath, "--- " + originalFile.path)
     printLine(outputPath, "+++ " + newFile.path)
@@ -279,8 +280,8 @@ fun unifiedContextOutput(diff : List<DiffBlock>, originalFile : TextFile,
             else if (originalCur == it.originalL + it.originalS)
                 printLine(outputPath, "+" + newFile.text[newCur++])
             else if (originalMarks[originalCur] == ' ' && newMarks[newCur] == ' ') {
-                printLine(outputPath, " " + newFile.text[newCur++])
-                originalCur++
+                printLine(outputPath, " " + originalFile.text[originalCur++])
+                newCur++
             }
             else if (originalMarks[originalCur] != ' ')
                 printLine(outputPath, "-" + originalFile.text[originalCur++])
@@ -292,11 +293,11 @@ fun unifiedContextOutput(diff : List<DiffBlock>, originalFile : TextFile,
 
 fun sideBySideOutput(diff : List<DiffBlock>, originalFile : TextFile,
                   newFile : TextFile, outputPath : String?) {
-    val width = originalFile.text.maxOf {it.length} + 10
+    val width = originalFile.text.maxOf {it.length} + 38
     var curBlock = 0
     var originalLine = 0
     var newLine = 0
-    while (originalLine != originalFile.text.size || newLine != newFile.text.size) {
+    while (originalLine != originalFile.size || newLine != newFile.size) {
         if (curBlock < diff.size && originalLine == diff[curBlock].originalL && newLine == diff[curBlock].newL) {
             val common = min(diff[curBlock].originalS, diff[curBlock].newS)
             for (i in 0 until common)
@@ -330,13 +331,27 @@ fun output(diff : List<DiffBlock>, format : Format, originalFile : TextFile,
     }
 }
 
+fun getOtherOptions(options: String) : List<Boolean> {
+    val result = MutableList(2) {false}
+
+    result[0] = options.contains('s')
+    result[1] = options.contains('i')
+
+    return result
+}
+
 fun main(args: Array<String>) {
     val (options, files) = input(args.toList())
     checkValid(options, files)
     val format = getFormat(options)
-    val originalFile = TextFile(files[0])
-    val newFile = TextFile(files[1])
-    val diff = findDiff(longestCommonSubsequence(originalFile.text, newFile.text),
+    val (reportIdentical, ignoreCase) = getOtherOptions(options)
+    val originalFile = TextFile(files[0], ignoreCase)
+    val newFile = TextFile(files[1], ignoreCase)
+    val diff = findDiff(longestCommonSubsequence(originalFile.textHash, newFile.textHash),
         originalFile.size, newFile.size)
-    output(diff, format, originalFile, newFile, if (files.size > 2) files[2] else null)
+    val outputPath = if (files.size > 2) files[2] else null
+    if (reportIdentical && diff.isEmpty())
+        printLine(outputPath,"Files ${originalFile.path} and ${newFile.path} are identical")
+    else if (diff.isNotEmpty())
+        output(diff, format, originalFile, newFile, outputPath)
 }
