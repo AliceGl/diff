@@ -61,6 +61,27 @@ internal class Test1 {
     }
 
     @Test
+    fun diffToContextTests() {
+        assertEquals(listOf(ContextBlock(0, 8, 0, 4),
+            ContextBlock(12, 15, 8, 22),
+            ContextBlock(29, 3, 32, 8)),
+        diffToContext(listOf(DiffBlock(1, 4, 1, 0),
+            DiffBlock(15, 1, 11, 2),
+            DiffBlock(20, 4, 17, 10),
+            DiffBlock(32, 0, 35, 5)), 32, 40))
+
+        assertEquals(listOf(), diffToContext(listOf(), 30, 30))
+    }
+
+    @Test
+    fun markLinesTests() {
+        assertEquals(Pair(listOf(' ', '!', '!', ' ', '-'), listOf('+', ' ', '!', ' ')),
+            markLines(listOf(DiffBlock(0, 0, 0, 1),
+                DiffBlock(1, 2, 2, 1),
+                DiffBlock(4, 1, 4, 0)), 5, 4))
+    }
+
+    @Test
     fun formatTests() {
         assertEquals(Format.UnifiedContext, getFormat("aaauaaaaa"))
         assertEquals(Format.Default, getFormat("aaabaaaaa"))
