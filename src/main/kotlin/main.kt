@@ -1,4 +1,6 @@
+import java.io.BufferedWriter
 import java.io.File
+import java.io.FileOutputStream
 import kotlin.math.max
 import kotlin.math.min
 
@@ -10,30 +12,30 @@ fun <T> longestCommonSubsequence (a: List<T>, b: List<T>): List<Pair<Int, Int>> 
     val n = a.size
     val m = b.size
     val lcsDP = List(n + 1) { MutableList(m + 1) {0} }
-    //lcs[i][j] - LCS for a[0..i - 1] and b[0..j - 1]
-    for (i in 1..n) {
-        for (j in 1..m) {
-            if (a[i - 1] == b[j - 1])
-                lcsDP[i][j] = lcsDP[i - 1][j - 1] + 1
+    //lcs[x][y] - LCS for a[0..x - 1] and b[0..y - 1]
+    for (x in 1..n) {
+        for (y in 1..m) {
+            if (a[x - 1] == b[y - 1])
+                lcsDP[x][y] = lcsDP[x - 1][y - 1] + 1
             else
-                lcsDP[i][j] = max(lcsDP[i - 1][j], lcsDP[i][j - 1])
+                lcsDP[x][y] = max(lcsDP[x - 1][y], lcsDP[x][y - 1])
         }
     }
     val lcsSize = lcsDP[n][m]
     val lcs = MutableList(lcsSize) { Pair(0, 0) }
 
     //finding LCS's indexes in a and b
-    var i = n
-    var j = m
+    var x = n
+    var y = m
     var curPair = lcsSize - 1
     while (curPair >= 0) {
-        if (a[i - 1] == b[j - 1]) {
-            lcs[curPair] = Pair(i, j)
-            --i; --j; --curPair
-        } else if (lcsDP[i][j] == lcsDP[i - 1][j])
-            --i
+        if (a[x - 1] == b[y - 1]) {
+            lcs[curPair] = Pair(x, y)
+            --x; --y; --curPair
+        } else if (lcsDP[x][y] == lcsDP[x - 1][y])
+            --x
         else
-            --j
+            --y
     }
 
     return lcs
@@ -45,10 +47,11 @@ data class DiffBlock (val originalL : Int, //start of range of changed lines in 
                       val newS : Int       //number of added/changed lines in new file
 )
 
-/* context block is a diff block with three lines before and three lines after it
+const val contextSize = 3
+/* context block is a diff block with contextSize lines before and contextSize lines after it
  if context blocks intersect or there is no lines between them, then they combine
  */
-typealias ContextBlock = DiffBlock
+data class ContextBlock (val originalL : Int, val originalS : Int, val newL : Int, val newS : Int)
 
 /* function findDiff takes list from function longestCommonSubsequence and number of lines
 in original and new file and returns list of changes/additions/deletions, where one
@@ -76,16 +79,20 @@ fun diffToContext(diff : List<DiffBlock>, originalSize : Int, newSize : Int) : L
     val context : MutableList<ContextBlock> = mutableListOf()
     var curBlock = ContextBlock(-1, -1, 0, 0)
     diff.forEach {
-        curBlock = if (curBlock.originalL == -1 || it.originalL - (curBlock.originalL + curBlock.originalS) > 3) {
+        curBlock = if (curBlock.originalL == -1 ||
+            it.originalL - (curBlock.originalL + curBlock.originalS) > contextSize) {
             if (curBlock.originalL != -1)
                 context.add(curBlock)
-            ContextBlock(it.originalL - 3, it.originalS + 6,
-                it.newL - 3, it.newS + 6)
+            ContextBlock(it.originalL - contextSize,
+                it.originalS + 2 * contextSize,
+                it.newL - contextSize,
+                it.newS + 2 * contextSize
+            )
         } else {
             ContextBlock(curBlock.originalL,
-                it.originalL - curBlock.originalL + it.originalS + 3,
+                it.originalL - curBlock.originalL + it.originalS + contextSize,
                 curBlock.newL,
-                it.newL - curBlock.newL + it.newS + 3
+                it.newL - curBlock.newL + it.newS + contextSize
             )
         }
     }
@@ -111,10 +118,10 @@ fun markLines(diff : List<DiffBlock>, originalSize: Int, newSize: Int) : Pair<Li
     val originalMarks = MutableList(originalSize) {' '}
     val newMarks = MutableList(newSize) {' '}
     diff.forEach {
-        for (i in it.originalL until it.originalL + it.originalS)
-            originalMarks[i] = if (it.newS == 0) '-' else '!'
-        for (i in it.newL until it.newL + it.newS)
-            newMarks[i] = if (it.originalS == 0) '+' else '!'
+        for (x in it.originalL until it.originalL + it.originalS)
+            originalMarks[x] = if (it.newS == 0) '-' else '!'
+        for (x in it.newL until it.newL + it.newS)
+            newMarks[x] = if (it.originalS == 0) '+' else '!'
     }
     return Pair(originalMarks, newMarks)
 }
@@ -183,114 +190,114 @@ fun getFormat(options: String) : Format {
     return result
 }
 
-fun printLine(outputPath : String?, line : String) = println(line)
+fun printLine(writer : BufferedWriter?, line : String) {
+    if (writer == null)
+        println(line)
+    else
+        writer.write(line + '\n')
+}
+
+fun getHead(diffBlock: DiffBlock) : String {
+    val head = StringBuilder()
+    head.append(when (diffBlock.originalS) {
+        0 -> diffBlock.originalL
+        1 -> diffBlock.originalL + 1
+        else -> (diffBlock.originalL + 1).toString() + "," +
+                (diffBlock.originalS + diffBlock.originalL).toString()
+    })
+    head.append(when {
+        diffBlock.originalS == 0 -> 'a'
+        diffBlock.newS == 0 -> 'd'
+        else -> 'c'
+    })
+    head.append(when (diffBlock.newS) {
+        0 -> diffBlock.newL
+        1 -> diffBlock.newL + 1
+        else -> (diffBlock.newL + 1).toString() + "," +
+                (diffBlock.newS + diffBlock.newL).toString()
+    })
+    return head.toString()
+}
 
 fun defaultOutput(diff : List<DiffBlock>, originalFile : TextFile,
-                  newFile : TextFile, outputPath : String?) {
+                  newFile : TextFile, writer : BufferedWriter?) {
     diff.forEach {
-        val head = StringBuilder()
-        head.append(when (it.originalS) {
-            0 -> it.originalL
-            1 -> it.originalL + 1
-            else -> (it.originalL + 1).toString() + "," + (it.originalS + it.originalL).toString()
-        })
-        head.append(when {
-            it.originalS == 0 -> 'a'
-            it.newS == 0 -> 'd'
-            else -> 'c'
-        })
-        head.append(when (it.newS) {
-            0 -> it.newL
-            1 -> it.newL + 1
-            else -> (it.newL + 1).toString() + "," + (it.newS + it.newL).toString()
-        })
-        printLine(outputPath, head.toString())
+        printLine(writer, getHead(it))
 
-        for (i in 0 until it.originalS)
-            printLine(outputPath, "< " + originalFile.text[it.originalL + i])
+        for (x in 0 until it.originalS)
+            printLine(writer, "< " + originalFile.text[it.originalL + x])
         if (it.originalS != 0)
-            printLine(outputPath,"---")
-        for (i in 0 until it.newS)
-            printLine(outputPath, "> " + newFile.text[it.newL + i])
+            printLine(writer,"---")
+        for (x in 0 until it.newS)
+            printLine(writer, "> " + newFile.text[it.newL + x])
     }
 }
 
-fun editScriptOutput(diff : List<DiffBlock>, newFile : TextFile, outputPath : String?) {
+fun editScriptOutput(diff : List<DiffBlock>, newFile : TextFile, writer : BufferedWriter?) {
     diff.reversed().forEach {
-        val head = StringBuilder()
-        head.append(when (it.originalS) {
-            0 -> it.originalL
-            1 -> it.originalL + 1
-            else -> (it.originalL + 1).toString() + "," + (it.originalS + it.originalL).toString()
-        })
-        head.append(when {
-            it.originalS == 0 -> 'a'
-            it.newS == 0 -> 'd'
-            else -> 'c'
-        })
-        printLine(outputPath, head.toString())
+        printLine(writer, getHead(it))
 
-        for (i in 0 until it.newS)
-            printLine(outputPath, newFile.text[it.newL + i])
+        for (x in 0 until it.newS)
+            printLine(writer, newFile.text[it.newL + x])
         if (it.newS != 0)
-            printLine(outputPath, ".")
+            printLine(writer, ".")
     }
 }
 
 fun copiedContextOutput(diff : List<DiffBlock>, originalFile : TextFile,
-                  newFile : TextFile, outputPath : String?) {
+                  newFile : TextFile, writer : BufferedWriter?) {
     val context = diffToContext(diff, originalFile.size, newFile.size)
     val (originalMarks, newMarks) = markLines(diff, originalFile.size, newFile.size)
 
-    printLine(outputPath, "*** " + originalFile.path)
-    printLine(outputPath, "--- " + newFile.path)
+    printLine(writer, "*** " + originalFile.path)
+    printLine(writer, "--- " + newFile.path)
     context.forEach {
-        printLine(outputPath, "***************")
-        printLine(outputPath, "*** " + (it.originalL + 1).toString() + ","
+        printLine(writer, "***************")
+        printLine(writer, "*** " + (it.originalL + 1).toString() + ","
                 + (it.originalL + it.originalS).toString() + " ****")
-        if ((it.originalL until it.originalL + it.originalS).any { i -> originalMarks[i] != ' ' })
-            for (i in it.originalL until it.originalL + it.originalS)
-                printLine(outputPath, originalMarks[i] + " " + originalFile.text[i])
+        if ((it.originalL until it.originalL + it.originalS).any { x -> originalMarks[x] != ' ' })
+            for (x in it.originalL until it.originalL + it.originalS)
+                printLine(writer, originalMarks[x] + " " + originalFile.text[x])
 
-        printLine(outputPath, "--- " + (it.newL + 1).toString() + "," +
+        printLine(writer, "--- " + (it.newL + 1).toString() + "," +
                 (it.newL + it.newS).toString() + " ----")
-        if ((it.newL until it.newL + it.newS).any {i -> newMarks[i] != ' '})
-            for (i in it.newL until it.newL + it.newS)
-                printLine(outputPath, newMarks[i] + " " + newFile.text[i])
+        if ((it.newL until it.newL + it.newS).any {x -> newMarks[x] != ' '})
+            for (x in it.newL until it.newL + it.newS)
+                printLine(writer, newMarks[x] + " " + newFile.text[x])
     }
 }
 
 fun unifiedContextOutput(diff : List<DiffBlock>, originalFile : TextFile,
-                  newFile : TextFile, outputPath : String?) {
+                  newFile : TextFile, writer : BufferedWriter?) {
     val context = diffToContext(diff, originalFile.size, newFile.size)
     val (originalMarks, newMarks) = markLines(diff, originalFile.size, newFile.size)
 
-    printLine(outputPath, "--- " + originalFile.path)
-    printLine(outputPath, "+++ " + newFile.path)
+    printLine(writer, "--- " + originalFile.path)
+    printLine(writer, "+++ " + newFile.path)
     context.forEach {
-        printLine(outputPath, "@@ -" + (it.originalL + 1).toString() + "," + it.originalS.toString()
+        printLine(writer, "@@ -" + (it.originalL + 1).toString() + "," + it.originalS.toString()
                 + " +" + (it.newL + 1).toString() + "," + it.newS.toString() + " @@")
         var originalCur = it.originalL
         var newCur = it.newL
         while (originalCur != it.originalL + it.originalS || newCur != it.newL + it.newS) {
             if (newCur == it.newL + it.newS)
-                printLine(outputPath, "-" + originalFile.text[originalCur++])
+                printLine(writer, "-" + originalFile.text[originalCur++])
             else if (originalCur == it.originalL + it.originalS)
-                printLine(outputPath, "+" + newFile.text[newCur++])
+                printLine(writer, "+" + newFile.text[newCur++])
             else if (originalMarks[originalCur] == ' ' && newMarks[newCur] == ' ') {
-                printLine(outputPath, " " + originalFile.text[originalCur++])
+                printLine(writer, " " + originalFile.text[originalCur++])
                 newCur++
             }
             else if (originalMarks[originalCur] != ' ')
-                printLine(outputPath, "-" + originalFile.text[originalCur++])
+                printLine(writer, "-" + originalFile.text[originalCur++])
             else
-                printLine(outputPath, "+" + newFile.text[newCur++])
+                printLine(writer, "+" + newFile.text[newCur++])
         }
     }
 }
 
 fun sideBySideOutput(diff : List<DiffBlock>, originalFile : TextFile,
-                  newFile : TextFile, outputPath : String?) {
+                  newFile : TextFile, writer : BufferedWriter?) {
     val width = originalFile.text.maxOf {it.length} + 38
     var curBlock = 0
     var originalLine = 0
@@ -298,19 +305,19 @@ fun sideBySideOutput(diff : List<DiffBlock>, originalFile : TextFile,
     while (originalLine != originalFile.size || newLine != newFile.size) {
         if (curBlock < diff.size && originalLine == diff[curBlock].originalL && newLine == diff[curBlock].newL) {
             val common = min(diff[curBlock].originalS, diff[curBlock].newS)
-            for (i in 0 until common)
-                printLine(outputPath, originalFile.text[originalLine + i].padEnd(width) + "| "
-                        + newFile.text[newLine + i])
-            for (i in common until diff[curBlock].originalS)
-                printLine(outputPath, originalFile.text[originalLine + i].padEnd(width) + "<")
-            for (i in common until diff[curBlock].newS)
-                printLine(outputPath, "".padEnd(width) + "> " + newFile.text[newLine + i])
+            for (x in 0 until common)
+                printLine(writer, originalFile.text[originalLine + x].padEnd(width) + "| "
+                        + newFile.text[newLine + x])
+            for (x in common until diff[curBlock].originalS)
+                printLine(writer, originalFile.text[originalLine + x].padEnd(width) + "<")
+            for (x in common until diff[curBlock].newS)
+                printLine(writer, "".padEnd(width) + "> " + newFile.text[newLine + x])
 
             originalLine += diff[curBlock].originalS
             newLine += diff[curBlock].newS
             ++curBlock
         } else {
-            printLine(outputPath, originalFile.text[originalLine].padEnd(width) + "  "
+            printLine(writer, originalFile.text[originalLine].padEnd(width) + "  "
                     + newFile.text[newLine])
             ++originalLine
             ++newLine
@@ -319,13 +326,13 @@ fun sideBySideOutput(diff : List<DiffBlock>, originalFile : TextFile,
 }
 
 fun output(diff : List<DiffBlock>, format : Format, originalFile : TextFile,
-           newFile : TextFile, outputPath : String?) {
+           newFile : TextFile, writer : BufferedWriter?) {
     when (format) {
-        Format.Default -> defaultOutput(diff, originalFile, newFile, outputPath)
-        Format.EditScript -> editScriptOutput(diff, newFile, outputPath)
-        Format.CopiedContext -> copiedContextOutput(diff, originalFile, newFile, outputPath)
-        Format.UnifiedContext -> unifiedContextOutput(diff, originalFile, newFile, outputPath)
-        Format.SideBySide -> sideBySideOutput(diff, originalFile, newFile, outputPath)
+        Format.Default -> defaultOutput(diff, originalFile, newFile, writer)
+        Format.EditScript -> editScriptOutput(diff, newFile, writer)
+        Format.CopiedContext -> copiedContextOutput(diff, originalFile, newFile, writer)
+        Format.UnifiedContext -> unifiedContextOutput(diff, originalFile, newFile, writer)
+        Format.SideBySide -> sideBySideOutput(diff, originalFile, newFile, writer)
     }
 }
 
@@ -333,7 +340,7 @@ fun getOtherOptions(options: String) : List<Boolean> {
     val result = MutableList(2) {false}
 
     result[0] = options.contains('s')
-    result[1] = options.contains('i')
+    result[1] = options.contains('x')
 
     return result
 }
@@ -347,9 +354,10 @@ fun main(args: Array<String>) {
     val newFile = TextFile(files[1], ignoreCase)
     val diff = findDiff(longestCommonSubsequence(originalFile.textHash, newFile.textHash),
         originalFile.size, newFile.size)
-    val outputPath = if (files.size > 2) files[2] else null
+    val writer = if (files.size > 2) File(files[2]).bufferedWriter() else null
     if (reportIdentical && diff.isEmpty())
-        printLine(outputPath,"Files ${originalFile.path} and ${newFile.path} are identical")
+        printLine(writer,"Files ${originalFile.path} and ${newFile.path} are identical")
     else if (diff.isNotEmpty())
-        output(diff, format, originalFile, newFile, outputPath)
+        output(diff, format, originalFile, newFile, writer)
+    writer?.close()
 }

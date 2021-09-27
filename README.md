@@ -17,8 +17,6 @@
 путь к файлу для вывода результата работы утилиты, если аргумент
 отсутствует, то результат будет направлен в стандартный поток вывода.
 
-**!!! Вывод в файл пока не работает**
-
 ### Опции утилиты
 
 #### Опции, задающие формат вывода
@@ -337,7 +335,7 @@ Files original and original are identical
 +to this document.
 </pre>
 
-> -i -y original.txt new.txt
+> -i -y original new
 
 <pre>
                                                                > This is an important
