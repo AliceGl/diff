@@ -190,9 +190,14 @@ fun getFormat(options: String) : Format {
     return result
 }
 
-fun printLine(writer : BufferedWriter?, line : String) {
+const val RESET = "\u001B[0m"
+const val RED = "\u001B[31m"
+const val GREEN = "\u001B[32m"
+const val PURPLE = "\u001B[35m"
+
+fun printLine(writer : BufferedWriter?, line : String, color: String = RESET) {
     if (writer == null)
-        println(line)
+        println(color + line + RESET)
     else
         writer.write(line + '\n')
 }
@@ -225,11 +230,11 @@ fun defaultOutput(diff : List<DiffBlock>, originalFile : TextFile,
         printLine(writer, getHead(it))
 
         for (x in 0 until it.originalS)
-            printLine(writer, "< " + originalFile.text[it.originalL + x])
+            printLine(writer, "< " + originalFile.text[it.originalL + x], RED)
         if (it.originalS != 0)
             printLine(writer,"---")
         for (x in 0 until it.newS)
-            printLine(writer, "> " + newFile.text[it.newL + x])
+            printLine(writer, "> " + newFile.text[it.newL + x], GREEN)
     }
 }
 
@@ -249,21 +254,23 @@ fun copiedContextOutput(diff : List<DiffBlock>, originalFile : TextFile,
     val context = diffToContext(diff, originalFile.size, newFile.size)
     val (originalMarks, newMarks) = markLines(diff, originalFile.size, newFile.size)
 
-    printLine(writer, "*** " + originalFile.path)
-    printLine(writer, "--- " + newFile.path)
+    printLine(writer, "*** " + originalFile.path, RED)
+    printLine(writer, "--- " + newFile.path, GREEN)
     context.forEach {
         printLine(writer, "***************")
         printLine(writer, "*** " + (it.originalL + 1).toString() + ","
                 + (it.originalL + it.originalS).toString() + " ****")
         if ((it.originalL until it.originalL + it.originalS).any { x -> originalMarks[x] != ' ' })
             for (x in it.originalL until it.originalL + it.originalS)
-                printLine(writer, originalMarks[x] + " " + originalFile.text[x])
+                printLine(writer, originalMarks[x] + " " + originalFile.text[x],
+                    if (originalMarks[x] != ' ') RED else RESET)
 
         printLine(writer, "--- " + (it.newL + 1).toString() + "," +
                 (it.newL + it.newS).toString() + " ----")
         if ((it.newL until it.newL + it.newS).any {x -> newMarks[x] != ' '})
             for (x in it.newL until it.newL + it.newS)
-                printLine(writer, newMarks[x] + " " + newFile.text[x])
+                printLine(writer, newMarks[x] + " " + newFile.text[x],
+                    if (newMarks[x] != ' ') GREEN else RESET)
     }
 }
 
@@ -272,26 +279,26 @@ fun unifiedContextOutput(diff : List<DiffBlock>, originalFile : TextFile,
     val context = diffToContext(diff, originalFile.size, newFile.size)
     val (originalMarks, newMarks) = markLines(diff, originalFile.size, newFile.size)
 
-    printLine(writer, "--- " + originalFile.path)
-    printLine(writer, "+++ " + newFile.path)
+    printLine(writer, "--- " + originalFile.path, RED)
+    printLine(writer, "+++ " + newFile.path, GREEN)
     context.forEach {
         printLine(writer, "@@ -" + (it.originalL + 1).toString() + "," + it.originalS.toString()
-                + " +" + (it.newL + 1).toString() + "," + it.newS.toString() + " @@")
+                + " +" + (it.newL + 1).toString() + "," + it.newS.toString() + " @@", PURPLE)
         var originalCur = it.originalL
         var newCur = it.newL
         while (originalCur != it.originalL + it.originalS || newCur != it.newL + it.newS) {
             if (newCur == it.newL + it.newS)
-                printLine(writer, "-" + originalFile.text[originalCur++])
+                printLine(writer, "-" + originalFile.text[originalCur++], RED)
             else if (originalCur == it.originalL + it.originalS)
-                printLine(writer, "+" + newFile.text[newCur++])
+                printLine(writer, "+" + newFile.text[newCur++], GREEN)
             else if (originalMarks[originalCur] == ' ' && newMarks[newCur] == ' ') {
                 printLine(writer, " " + originalFile.text[originalCur++])
                 newCur++
             }
             else if (originalMarks[originalCur] != ' ')
-                printLine(writer, "-" + originalFile.text[originalCur++])
+                printLine(writer, "-" + originalFile.text[originalCur++], RED)
             else
-                printLine(writer, "+" + newFile.text[newCur++])
+                printLine(writer, "+" + newFile.text[newCur++], GREEN)
         }
     }
 }
