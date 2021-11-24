@@ -1,6 +1,6 @@
 #  Basics of programming course: the utility diff
 
-Realization of the utility diff (https://ru.wikipedia.org/wiki/Diff)
+Realization of the utility diff (https://en.wikipedia.org/wiki/Diff)
 
 ### Usage
 
