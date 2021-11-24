@@ -1,46 +1,43 @@
-# Курс основ программирования на МКН СПбГУ
-## Проект 1: утилита diff
+#  Basics of programming course: the utility diff
 
-[Постановка задачи](./TASK.md)
+Realization of the utility diff (https://ru.wikipedia.org/wiki/Diff)
 
-### Описание работы программы
+### Usage
 
-Утилита diff реализована в файле main.kt, аргументы программа принимает
-как из командной строки, так и из стандартного ввода, причем первую часть 
-аргументов можно передать в качестве параметров командной строки, а
-остальные ввести после запуска. Причем конец ввода требуется обозначить
-в стандартном потоке ввода.
+Utility diff is implemented in file main.kt, program accepts arguments from
+both command line and standard input. The end of the input must be indicated
+in the standard input stream.
 
-Опции утилиты передаются первыми аргументами и начинаются с символа -,
-после которого идут символы, обозначающие опции. Следующие два
-аргумента задают пути к сравниваемым файлам. Последний аргумент задаёт
-путь к файлу для вывода результата работы утилиты, если аргумент
-отсутствует, то результат будет направлен в стандартный поток вывода.
+Utility options are passed as the first arguments and begin with the "-"
+symbol, followed by symbols denoting options. The next two arguments specify
+the paths to the files being compared. The last argument specifies the path
+to the file to output the result of the utility, if there is no argument,
+the result will be printed to the standard output stream.
 
-### Опции утилиты
+### Utility options
 
-#### Опции, задающие формат вывода
+#### Output format options
 
-Опция | Формат
+Option | Format
 ----- | ------
 -e | EditScript
 -c | Copied context
 -u | Unified context
--y | Вывод в два столбца
+-y | Two columns
 
-Может быть применена лишь одна из этих опций, если же ни одна из опций
-не применена, то результат выведется в стандартном формате
+Only one of these options can be applied, if none of them is applied, the
+result will be output in standard format.
 
-#### Другие опции
+#### Other options
 
-Опция | Значение
+Option | Meaning
 ----- | ------
--s | Уведомляет, если файлы идентичны
--i | Игнорирует различия в регистре
+-s | Notifies if the files are identical
+-i | Ignores case differences
 
-### Примеры вывода
+### Examples
 
-Рассмотрим файлы original и new:
+For the files "original" and "new":
 
 #### *Original:*
 <pre >
@@ -104,7 +101,7 @@
 29| to this document.
 </pre>
 
-Вывод программы при запуске со следующими аргументами:
+Program output when run with the following arguments:
 
 > original new
 
