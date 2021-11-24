@@ -1,17 +1,17 @@
 #  Basics of programming course: the utility diff
 
-Realization of the utility diff (https://en.wikipedia.org/wiki/Diff)
+Implementation of the utility diff (https://en.wikipedia.org/wiki/Diff)
 
 ### Usage
 
-Utility diff is implemented in file main.kt, program accepts arguments from
-both command line and standard input. The end of the input must be indicated
+The utility diff is implemented in file main.kt, program takes arguments from
+both the command line and the standard input. The end of the input must be indicated
 in the standard input stream.
 
 Utility options are passed as the first arguments and begin with the "-"
 symbol, followed by symbols denoting options. The next two arguments specify
 the paths to the files being compared. The last argument specifies the path
-to the file to output the result of the utility, if there is no argument,
+to the file to output the result of the utility, if there is no such argument,
 the result will be printed to the standard output stream.
 
 ### Utility options
@@ -25,14 +25,14 @@ Option | Format
 -u | Unified context
 -y | Two columns
 
-Only one of these options can be applied, if none of them is applied, the
-result will be output in standard format.
+Only one of these options can be applied. If none of them is applied, the
+result will be outputted in standard format.
 
 #### Other options
 
 Option | Meaning
 ----- | ------
--s | Notifies if the files are identical
+-s | Indicates if the files are identical
 -i | Ignores case differences
 
 ### Examples
